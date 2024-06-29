@@ -1,5 +1,3 @@
-use vertical_up::VerticalUp::*;
-
 mod vertical_up;
 mod twoline;
 
