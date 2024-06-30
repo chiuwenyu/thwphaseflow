@@ -1,3 +1,9 @@
+#![allow(dead_code)]
+#![allow(unused_variables)]
+#![allow(non_snake_case)]
+#![allow(non_upper_case_globals)]
+#![allow(unused_assignments)]
+
 use std::f32::consts::PI;
 
 use twoline::TwoPhaseLine;
@@ -23,28 +29,32 @@ pub struct VerticalUp {
     pub degree: f64,    // degree,  Horizontal = 0, -Up / +Down
 
     // result
-    pub flow_regime: String,     // identify the flow regime
+    pub regime_enum: Regime,     // identify the flow regime(enum)
+    pub flow_regime: String,     // identify the flow regime(String)
 
     // state variable
     is_unit_change: bool,    // is call the unit_transfer and transfer to unit
 }
 
 impl VerticalUp {
-    pub fn new(&mut self, WL: f64, WG: f64, LoL: f64, LoG: f64, muL: f64, muG: f64, ST: f64,
-               rough: f64, SF: f64, ID: f64, degree: f64) {
-        self.WL = WL;
-        self.WG = WG;
-        self.LoL = LoL;
-        self.LoG = LoG;
-        self.muL = muL;
-        self.muG = muG;
-        self.ST = ST;
-        self.rough = rough;
-        self.SF = SF;
-        self.ID = ID;
-        self.degree = degree;
-        self.is_unit_change = false;
-        self.flow_regime = String::from("");
+    pub fn new(WL: f64, WG: f64, LoL: f64, LoG: f64, muL: f64, muG: f64, ST: f64,
+               rough: f64, SF: f64, ID: f64, degree: f64) -> Self {
+        VerticalUp {
+            WL,
+            WG,
+            LoL,
+            LoG,
+            muL,
+            muG,
+            ST,
+            rough,
+            SF,
+            ID,
+            degree,
+            is_unit_change: false,
+            regime_enum: Regime::NONE,
+            flow_regime: String::from(""),
+        }
     }
 
     fn get_UGSE_from_curveE(&self) -> f64 {
@@ -64,7 +74,7 @@ impl VerticalUp {
 
     fn get_UGSA_from_curveA(&self, y: f64) -> Result<f64, &'static str> {
         // by Eq. (5)
-        let term_a = G * (self.LoL - Self.LoG) * self.ST / self.LoL.powf(2.0);
+        let term_a = G * (self.LoL - self.LoG) * self.ST / self.LoL.powf(2.0);
         let UGS_cal = (y + 0.9938 * term_a.powf(0.25)) / 3.0;
 
         if UGS_cal.is_nan() || UGS_cal.is_infinite() {
@@ -98,47 +108,47 @@ impl TwoPhaseLine for VerticalUp {
         let ULS = UL * (1.0 - alfa);         // Liquid Superficial Velocity [m/s]
 
         // Curve E
-        let ratio_E = UGS / self.get_UGSE_from_curveE();
+        let ratio_e = UGS / self.get_UGSE_from_curveE();
 
         // Curve C
-        let ratio_C = UGS / (13.0 / 12.0 * ULS);    // Curve C Eq. (15) 求得的 UGS 計算值
+        let ratio_c = UGS / (13.0 / 12.0 * ULS);    // Curve C Eq. (15) 求得的 UGS 計算值
 
         // Curve B
-        let ratio_B = ULS / self.get_ULSB_from_curveB(UGS);
+        let ratio_b = ULS / self.get_ULSB_from_curveB(UGS);
 
         // Curve A ()
-        let mut ratio_A: f64 = 0.0;
+        let mut ratio_a: f64 = 0.0;
         match self.get_UGSA_from_curveA(ULS) {
-            Ok(value) => { ratio_A = UGS / value; }
+            Ok(value) => { ratio_a = UGS / value; }
             Err(e) => { println!("Error: {}", e); }
         }
 
         // ***** Regime 的判斷邏輯 *****
-        let mut res: Regime = Regime::NONE;
-        if ratio_E > 1.0 {
+        if ratio_e > 1.0 {
             // Churn transition to Annular Flow 與流體速度無關, 與管徑亦無任何關聯
             // ratioE > 1 : Annular Flow
             // ratioE <= 1 : Churn Flow
-            res = Regime::VerticalUpAnnularFlow(String::from("Vertical Up Annular Flow"));
-        } else if ratio_A <= 1.0 && ratio_B <= 1.0 {
-            res = Regime::VerticalUpBubbleFlow(String::from("Vertical Up Bubble Flow"));
-        } else if ratio_A > 1.0 && ratio_B <= 1.0 {
-            res = Regime::VerticalUpSlugAndChurnFlow(String::from("Vertical Up Slug and Churn Flow"));
-        } else if ratio_A > 1.0 && ratio_C > 1.0 {
-            res = Regime::VerticalUpSlugAndChurnFlow(String::from("Vertical Up Slug and Churn Flow"));
+            self.regime_enum = Regime::VerticalUpAnnularFlow(String::from("Vertical Up Annular Flow"));
+        } else if ratio_a <= 1.0 && ratio_b <= 1.0 {
+            self.regime_enum = Regime::VerticalUpBubbleFlow(String::from("Vertical Up Bubble Flow"));
+        } else if ratio_a > 1.0 && ratio_b <= 1.0 {
+            self.regime_enum = Regime::VerticalUpSlugAndChurnFlow(String::from("Vertical Up Slug and Churn Flow"));
+        } else if ratio_a > 1.0 && ratio_c > 1.0 {
+            self.regime_enum = Regime::VerticalUpSlugAndChurnFlow(String::from("Vertical Up Slug and Churn Flow"));
         } else {
-            res = Regime::VerticalUpFinelyDispersedBubbleFlow(String::from("Vertical Up Finely Dispersed Bubble Flow"));
+            self.regime_enum = Regime::VerticalUpFinelyDispersedBubbleFlow(String::from("Vertical Up Finely Dispersed Bubble Flow"));
         };
 
-        self.flow_regime = match res {
-            Regime::VerticalUpAnnularFlow(v) => v,
-            Regime::VerticalUpBubbleFlow(v) => v,
-            Regime::VerticalUpSlugAndChurnFlow(v) => v,
-            Regime::VerticalUpFinelyDispersedBubbleFlow(v) => v,
+        self.flow_regime = match &self.regime_enum {
+            Regime::VerticalUpAnnularFlow(v) => v.to_string(),
+            Regime::VerticalUpBubbleFlow(v) => v.to_string(),
+            Regime::VerticalUpSlugAndChurnFlow(v) => v.to_string(),
+            Regime::VerticalUpFinelyDispersedBubbleFlow(v) => v.to_string(),
             _ => String::from(""),
         };
     }
 
+    #[allow(dead_code)]
     fn model_cal() {
         todo!()
     }

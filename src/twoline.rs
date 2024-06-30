@@ -1,3 +1,4 @@
+#[derive(Debug)]
 pub enum Regime {
     VerticalUpAnnularFlow(String),
     VerticalUpBubbleFlow(String),
@@ -6,7 +7,8 @@ pub enum Regime {
     NONE,
 }
 pub trait TwoPhaseLine {
-    fn unit_transfer(&self);
-    fn flow_regime(&self) -> Regime;
+    fn unit_transfer(&mut self);
+    fn flow_regime(&mut self);
+    #[allow(dead_code)]
     fn model_cal();
 }
