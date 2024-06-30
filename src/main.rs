@@ -32,6 +32,6 @@ fn main() {
     println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p1.Head);
     println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p1.Pfric);
     println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p1.Pgrav);
-    println!("Errosion Factor (-) = {:.3}", p1.Ef);
+    println!("Erosion Factor (-) = {:.3}", p1.Ef);
     println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
 }
