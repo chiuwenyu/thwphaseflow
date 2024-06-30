@@ -23,7 +23,7 @@ pub struct VerticalUp {
     pub degree: f64,    // degree,  Horizontal = 0, -Up / +Down
 
     // result
-    pub flow_regime: Regime,     // identify the flow regime
+    pub flow_regime: String,     // identify the flow regime
 
     // state variable
     is_unit_change: bool,    // is call the unit_transfer and transfer to unit
@@ -44,7 +44,7 @@ impl VerticalUp {
         self.ID = ID;
         self.degree = degree;
         self.is_unit_change = false;
-        self.flow_regime = Regime::NONE;
+        self.flow_regime = String::from("");
     }
 
     fn get_UGSE_from_curveE(&self) -> f64 {
@@ -114,19 +114,28 @@ impl TwoPhaseLine for VerticalUp {
         }
 
         // ***** Regime 的判斷邏輯 *****
-        self.flow_regime = if ratio_E > 1.0 {
+        let mut res: Regime = Regime::NONE;
+        if ratio_E > 1.0 {
             // Churn transition to Annular Flow 與流體速度無關, 與管徑亦無任何關聯
             // ratioE > 1 : Annular Flow
             // ratioE <= 1 : Churn Flow
-            Regime::VerticalUpAnnularFlow
+            res = Regime::VerticalUpAnnularFlow(String::from("Vertical Up Annular Flow"));
         } else if ratio_A <= 1.0 && ratio_B <= 1.0 {
-            Regime::VerticalUpBubbleFlow
+            res = Regime::VerticalUpBubbleFlow(String::from("Vertical Up Bubble Flow"));
         } else if ratio_A > 1.0 && ratio_B <= 1.0 {
-            Regime::VerticalUpSlugAndChurnFlow
+            res = Regime::VerticalUpSlugAndChurnFlow(String::from("Vertical Up Slug and Churn Flow"));
         } else if ratio_A > 1.0 && ratio_C > 1.0 {
-            Regime::VerticalUpSlugAndChurnFlow
+            res = Regime::VerticalUpSlugAndChurnFlow(String::from("Vertical Up Slug and Churn Flow"));
         } else {
-            Regime::VerticalUpFinelyDispersedBubbleFlow
+            res = Regime::VerticalUpFinelyDispersedBubbleFlow(String::from("Vertical Up Finely Dispersed Bubble Flow"));
+        };
+
+        self.flow_regime = match res {
+            Regime::VerticalUpAnnularFlow(v) => v,
+            Regime::VerticalUpBubbleFlow(v) => v,
+            Regime::VerticalUpSlugAndChurnFlow(v) => v,
+            Regime::VerticalUpFinelyDispersedBubbleFlow(v) => v,
+            _ => String::from(""),
         };
     }
 

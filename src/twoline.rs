@@ -1,9 +1,8 @@
 pub enum Regime {
-    VerticalUpAnnularFlow,
-    VerticalUpChurnFlow,
-    VerticalUpBubbleFlow,
-    VerticalUpSlugAndChurnFlow,
-    VerticalUpFinelyDispersedBubbleFlow,
+    VerticalUpAnnularFlow(String),
+    VerticalUpBubbleFlow(String),
+    VerticalUpSlugAndChurnFlow(String),
+    VerticalUpFinelyDispersedBubbleFlow(String),
     NONE,
 }
 pub trait TwoPhaseLine {
