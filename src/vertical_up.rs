@@ -83,6 +83,21 @@ impl VerticalUp {
             Ok(UGS_cal)
         }
     }
+
+    fn SimilarityAnalysis(&self) {
+        // for Anaular flow pattern
+        println!("Implement Similarity Model here");
+    }
+
+    fn SlugModel(&self) {
+        // for Slug and Churn flow pattern
+        println!("Implement Slug Model here");
+    }
+
+    fn BubbleModel(&self) {
+        // for Bubble flow and Finely Bubble flow pattern
+        println!("Implement Bubble Model here");
+    }
 }
 
 impl TwoPhaseLine for VerticalUp {
@@ -148,8 +163,13 @@ impl TwoPhaseLine for VerticalUp {
         };
     }
 
-    #[allow(dead_code)]
-    fn model_cal() {
-        todo!()
+    fn model_cal(&self) {
+        match self.regime_enum {
+            Regime::VerticalUpAnnularFlow(..) => self.SimilarityAnalysis(),
+            Regime::VerticalUpSlugAndChurnFlow(..) => self.SlugModel(),
+            Regime::VerticalUpBubbleFlow(..) => self.BubbleModel(),
+            Regime::VerticalUpFinelyDispersedBubbleFlow(..) => self.BubbleModel(),
+            _ => { println!("No match model for this flow pattern !!") }
+        }
     }
 }

@@ -24,5 +24,6 @@ fn main() {
     let mut p1 = VerticalUp::new(wl, wg, lo_l, lo_g, mu_l, mu_g, surface_tension, rough, sf, id, slope);
     p1.unit_transfer();
     p1.flow_regime();
-    println!("flow regime enum: {:?}, flow regime: {}", p1.regime_enum, p1.flow_regime);
+    println!("flow regime << {} >>", p1.flow_regime);
+    p1.model_cal();
 }

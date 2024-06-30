@@ -9,6 +9,6 @@ pub enum Regime {
 pub trait TwoPhaseLine {
     fn unit_transfer(&mut self);
     fn flow_regime(&mut self);
-    #[allow(dead_code)]
-    fn model_cal();
+
+    fn model_cal(&self);
 }
