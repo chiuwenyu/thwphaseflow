@@ -186,7 +186,34 @@ impl VerticalUp {
 
     fn BubbleModel(&self) {
         // for Bubble flow and Finely Bubble flow pattern
-        println!("Implement Bubble Model here");
+        use std::f64;
+
+        let mut area = f64::consts::PI * self.ID * self.ID / 4.0; // pipe area [m^2]
+        let mut UGS = self.WG / self.LoG / area / 3600.0; // Vapor Velocity [m/s]
+        let mut ULS = self.WL / self.LoL / area / 3600.0; // Liquid Velocity [m/s]
+        let mut landa = ULS / (ULS + UGS); // Liquid Volume Fraction [-]
+        let mut delta = 1.0; // Absolute error [-]
+        let mut alfa = 0.5; // Gas average void fraction [-]
+        let eps = 1e-4; // Allowable Tolerance
+        let mut n = 0; // trials
+        const MAX_TRIAL: i32 = 100;
+
+        while delta > eps {
+            let U0 = ((1.0 - alfa).sqrt() * 1.53 * ((self.ST * G * (self.LoL - self.LoG)) / (self.LoL * self.LoL)).powf(0.25)); // Eq. (38)
+            let alfacal = UGS / (ULS / (1.0 - alfa) + U0); // Eq. (37)
+            delta = (alfacal - alfa).abs();
+            alfa = (alfa + alfacal) / 2.0;
+            n += 1;
+            if n > MAX_TRIAL {
+                break;
+            }
+        }
+
+        if n > MAX_TRIAL {
+            println!("Vertical-Up Bubble Model: alfa did not converge!");
+        }
+
+        // calculate result here
     }
 }
 
