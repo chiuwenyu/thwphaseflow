@@ -31,6 +31,7 @@ pub struct VerticalUp {
     // result
     pub regime_enum: Regime,     // identify the flow regime(enum)
     pub flow_regime: String,     // identify the flow regime(String)
+    // for Similarity Analysis Model
     pub Loip: f64,      // two phase density [kg/m^3]
     pub RL: f64,        // Liquid Volume Fraction [-]
     pub UTP: f64,       // Two-Phase Velocity [m/sec]
@@ -38,6 +39,12 @@ pub struct VerticalUp {
     pub Pfric: f64,     // Frictional Pressure Loss [kgf/cm^2/100m]
     pub Pgrav: f64,     // Elevation Head Loss [kgf/cm^2/100m]
     pub Ef: f64,        // Errosion Factor [-]
+    // for Bubble Model
+    pub LoNS: f64,      // two phase density [kg/m^3]
+    pub Landa: f64,     // Liquid Volume Fraction [-]
+    // UTP same as Similarity
+    // Head, Pfric, Pgrav, Ef same as Similarity
+
 
     // state variable
     is_unit_change: bool,    // is call the unit_transfer and transfer to unit
@@ -68,6 +75,8 @@ impl VerticalUp {
             Pfric: 0.0,
             Pgrav: 0.0,
             Ef: 0.0,
+            LoNS: 0.0,
+            Landa: 0.0,
         }
     }
 
@@ -184,14 +193,14 @@ impl VerticalUp {
         println!("Implement Slug Model here");
     }
 
-    fn BubbleModel(&self) {
+    fn BubbleModel(&mut self) {
         // for Bubble flow and Finely Bubble flow pattern
         use std::f64;
 
         let area = f64::consts::PI * self.ID * self.ID / 4.0; // pipe area [m^2]
         let UGS = self.WG / self.LoG / area / 3600.0; // Vapor Velocity [m/s]
         let ULS = self.WL / self.LoL / area / 3600.0; // Liquid Velocity [m/s]
-        let landa = ULS / (ULS + UGS); // Liquid Volume Fraction [-]
+        self.Landa = ULS / (ULS + UGS); // Liquid Volume Fraction [-]
         let mut delta = 1.0; // Absolute error [-]
         let mut alfa = 0.5; // Gas average void fraction [-]
         let eps = 1e-4; // Allowable Tolerance
@@ -214,6 +223,19 @@ impl VerticalUp {
         }
 
         // calculate result here
+        let loTP = self.LoG * (1.0 - self.Landa).powf(2.0) / alfa + self.LoL * self.Landa.powf(2.0) / (1.0 - alfa); // Eq. (40)
+        let muTP = self.muL * self.Landa + self.muG * (1.0 - self.Landa); // Eq. (40)
+        let ReTP = self.ID * (ULS + UGS) * loTP / muTP; // Eq. (41)
+        let f0 = self.fanning(ReTP) * 4.0; // Step (3)
+        let lnlanda = -1.0 * self.Landa.ln();
+        let fTP = f0 * (1.0 + lnlanda / (1.281 - 0.478 * lnlanda + 0.444 * lnlanda.powf(2.0)
+            - 0.094 * lnlanda.powf(3.0) + 0.00843 * lnlanda.powf(4.0))); // Step (4)
+        self.Pfric = fTP * loTP * (ULS + UGS).powf(2.0) / (2.0 * G * self.ID) / 10000.0 * 100.0 * self.SF; // Eq. (42)
+        self.Pgrav = (self.LoL * (1.0 - alfa) + self.LoG * alfa) / 10000.0 * 100.0; // Eq. (43)
+        self.UTP = ULS + UGS;
+        self.LoNS = self.LoL * self.Landa + self.LoG * (1.0 - self.Landa);
+        self.Head = self.LoNS * self.UTP.powf(2.0) / (2.0 * G) / 10000.0;
+        self.Ef = (self.LoNS * 0.062428) * (self.UTP * 3.28084).powf(2.0) / 10000.0; // must transfer to imperial unit
     }
 }
 
