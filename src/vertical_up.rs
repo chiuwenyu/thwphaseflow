@@ -190,7 +190,44 @@ impl VerticalUp {
 
     fn SlugModel(&self) {
         // for Slug and Churn flow pattern
-        println!("Implement Slug Model here");
+        use std::f64;
+
+        let area = f64::consts::PI * self.ID * self.ID / 4.0; // pipe area [m^2]
+        let UGS = self.WG / self.LoG / area / 3600.0; // Vapor Velocity [m/s]
+        let ULS = self.WL / self.LoL / area / 3600.0; // Liquid Velocity [m/s]
+        let UTP = UGS + ULS; // Two Phase Velocity [m/s]
+
+        let alfaLS = 0.25; // Void fraction of liquid slug
+        let UN = 0.35 * (G * self.ID).sqrt() + 1.29 * UTP; // rise velocity of transition of Taylor Bubble in stagnant liquid [m/s], Eq. (A-16)
+
+        // term = UO : the rise velocity due to buoyancy [m/s], Eq. (A-18)
+        let mut term;
+        term = 1.53 * ((self.ST * G * (self.LoL - self.LoG)) / (self.LoL * self.LoL)).powf(0.25) * (1.0f64 - alfaLS).sqrt();
+        let ULLS = UTP - term * alfaLS; // Velocity of the liquid in the liquid slug
+        let UGLS = UTP + term * (1.0 - alfaLS); // Velocity of the gas in the liquid slug
+        let Landa = ULLS * (1.0 - alfaLS) / UTP; // Liquid volume fraction [-]
+        let mut alfaTB = 0.1; // Void fraction of Taylor Bubble [-]
+        let mut delta = 1.0; // absolute error
+        let eps = 1e-4; // allowable tolerance
+
+        let mut term1;
+        let mut alf1;
+        let mut alf2;
+        let mut alfaTB_cal;
+
+        while delta > eps {
+            term = UN * (alfaTB - alfaLS) - ULLS * (1.0 - alfaLS);
+            term1 = 9.916 * (G * self.ID * (1.0 - alfaTB.sqrt())).sqrt() * (1.0 - alfaTB);
+            alf1 = term - term1;
+            alf2 = UN + 9.916 * (G * self.ID * (1.0 - alfaTB.sqrt())).sqrt() * (1.0 + 5.0 * alfaTB.sqrt()) / (4.0 * alfaTB.sqrt());
+            if alf2 == 0.0 {
+                break;
+            }
+            alfaTB_cal = alfaTB - alf1 / alf2; // Calc. Void fraction of Taylor Bubble [-]
+            delta = (alfaTB_cal - alfaTB).abs();
+            alfaTB = (alfaTB + alfaTB_cal) / 2.0;
+        }
+        // next here
     }
 
     fn BubbleModel(&mut self) {
