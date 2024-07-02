@@ -228,6 +228,15 @@ impl VerticalUp {
             alfaTB = (alfaTB + alfaTB_cal) / 2.0;
         }
         // next here
+        let ULTB = 9.916 * (G * self.ID * (1.0 - alfaTB.sqrt())).sqrt();
+        let beta = (UGS - alfaLS * UGLS) / UN / (alfaTB - alfaLS); // LTB/Lu
+        let alfaSU = beta * alfaTB + (1.0 - beta) * alfaLS; // void fraction of a slug unit
+        let LLS = 20.0 * self.ID;
+        let Lu = LLS / (1.0 - beta);
+        let LTB = Lu - LLS; // length of Taylor Bubble
+        let LoLS = self.LoG * (1.0 - Landa).powf(2.0) / alfaLS + self.LoL * Landa.powf(2.0) / (1.0 - alfaLS);
+        let LoSU = self.LoG * (1.0 - alfaSU) + self.LoL * alfaSU;
+        let Le = self.ID * 35.5 * (8.0 / 7.0 * UTP / (G * self.ID).sqrt() + 0.25) * 1.2;
     }
 
     fn BubbleModel(&mut self) {
