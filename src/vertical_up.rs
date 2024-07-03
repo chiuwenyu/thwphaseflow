@@ -243,7 +243,7 @@ impl VerticalUp {
             delta = (alfaTB_cal - alfaTB).abs();
             alfaTB = (alfaTB + alfaTB_cal) / 2.0;
         }
-        // next here
+        
         let ULTB = 9.916 * (G * self.ID * (1.0 - alfaTB.sqrt())).sqrt();
         let beta = (UGS - alfaLS * UGLS) / UN / (alfaTB - alfaLS); // LTB/Lu
         let alfaSU = beta * alfaTB + (1.0 - beta) * alfaLS; // void fraction of a slug unit
