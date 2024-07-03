@@ -31,6 +31,7 @@ pub struct VerticalUp {
     // result
     pub regime_enum: Regime,     // identify the flow regime(enum)
     pub flow_regime: String,     // identify the flow regime(String)
+
     // for Similarity Analysis Model
     pub Loip: f64,      // two phase density [kg/m^3]
     pub RL: f64,        // Liquid Volume Fraction [-]
@@ -39,10 +40,19 @@ pub struct VerticalUp {
     pub Pfric: f64,     // Frictional Pressure Loss [kgf/cm^2/100m]
     pub Pgrav: f64,     // Elevation Head Loss [kgf/cm^2/100m]
     pub Ef: f64,        // Errosion Factor [-]
+
     // for Bubble Model
     pub LoNS: f64,      // two phase density [kg/m^3]
     pub Landa: f64,     // Liquid Volume Fraction [-]
-    // UTP same as Similarity
+    // UTP, Head, Pfric, Pgrav, Ef same as Similarity
+
+    // for Slug Model
+    pub LoLS: f64,      // Liquid Slug Density [kg/m^3]
+    pub LoSU: f64,      // Two phase slug unit density [kg/m^3]
+    pub ULLS: f64,      // Liquid Slug Velocity [m/sec]
+    pub LLS: f64,       // Liquid Slug Length [m]
+    pub Lu: f64,        // Slug unit length [m]
+    pub Le: f64,        // Stabilizes to Slug flow in x m
     // Head, Pfric, Pgrav, Ef same as Similarity
 
 
@@ -77,6 +87,12 @@ impl VerticalUp {
             Ef: 0.0,
             LoNS: 0.0,
             Landa: 0.0,
+            LoLS: 0.0,
+            LoSU: 0.0,
+            ULLS: 0.0,
+            LLS: 0.0,
+            Lu: 0.0,
+            Le: 0.0,
         }
     }
 
@@ -188,7 +204,7 @@ impl VerticalUp {
         self.Ef = (LoNS * 0.062428) * ((ULS + UGS) * 3.28084).powf(2.0) / 10000.0;
     }
 
-    fn SlugModel(&self) {
+    fn SlugModel(&mut self) {
         // for Slug and Churn flow pattern
         use std::f64;
 
@@ -203,9 +219,9 @@ impl VerticalUp {
         // term = UO : the rise velocity due to buoyancy [m/s], Eq. (A-18)
         let mut term;
         term = 1.53 * ((self.ST * G * (self.LoL - self.LoG)) / (self.LoL * self.LoL)).powf(0.25) * (1.0f64 - alfaLS).sqrt();
-        let ULLS = UTP - term * alfaLS; // Velocity of the liquid in the liquid slug
+        self.ULLS = UTP - term * alfaLS; // Velocity of the liquid in the liquid slug
         let UGLS = UTP + term * (1.0 - alfaLS); // Velocity of the gas in the liquid slug
-        let Landa = ULLS * (1.0 - alfaLS) / UTP; // Liquid volume fraction [-]
+        let Landa = self.ULLS * (1.0 - alfaLS) / UTP; // Liquid volume fraction [-]
         let mut alfaTB = 0.1; // Void fraction of Taylor Bubble [-]
         let mut delta = 1.0; // absolute error
         let eps = 1e-4; // allowable tolerance
@@ -216,7 +232,7 @@ impl VerticalUp {
         let mut alfaTB_cal;
 
         while delta > eps {
-            term = UN * (alfaTB - alfaLS) - ULLS * (1.0 - alfaLS);
+            term = UN * (alfaTB - alfaLS) - self.ULLS * (1.0 - alfaLS);
             term1 = 9.916 * (G * self.ID * (1.0 - alfaTB.sqrt())).sqrt() * (1.0 - alfaTB);
             alf1 = term - term1;
             alf2 = UN + 9.916 * (G * self.ID * (1.0 - alfaTB.sqrt())).sqrt() * (1.0 + 5.0 * alfaTB.sqrt()) / (4.0 * alfaTB.sqrt());
@@ -227,17 +243,32 @@ impl VerticalUp {
             delta = (alfaTB_cal - alfaTB).abs();
             alfaTB = (alfaTB + alfaTB_cal) / 2.0;
         }
+        // next here
         let ULTB = 9.916 * (G * self.ID * (1.0 - alfaTB.sqrt())).sqrt();
         let beta = (UGS - alfaLS * UGLS) / UN / (alfaTB - alfaLS); // LTB/Lu
         let alfaSU = beta * alfaTB + (1.0 - beta) * alfaLS; // void fraction of a slug unit
-        let LLS = 20.0 * self.ID;
-        let Lu = LLS / (1.0 - beta);
-        let LTB = Lu - LLS; // length of Taylor Bubble
-        let LoLS = self.LoG * (1.0 - Landa).powf(2.0) / alfaLS + self.LoL * Landa.powf(2.0) / (1.0 - alfaLS);
-        let LoSU = self.LoG * (1.0 - alfaSU) + self.LoL * alfaSU;
-        let Le = self.ID * 35.5 * (8.0 / 7.0 * UTP / (G * self.ID).sqrt() + 0.25) * 1.2;
-        // next here
+        self.LLS = 20.0 * self.ID;
+        self.Lu = self.LLS / (1.0 - beta);
+        let LTB = self.Lu - self.LLS; // length of Taylor Bubble
+        self.LoLS = self.LoG * (1.0 - Landa).powf(2.0) / alfaLS + self.LoL * Landa.powf(2.0) / (1.0 - alfaLS);
+        self.LoSU = self.LoG * (1.0 - alfaSU) + self.LoL * alfaSU;
+        self.Le = self.ID * 35.5 * (8.0 / 7.0 * UTP / (G * self.ID).sqrt() + 0.25) * 1.2;
 
+        let LoNS = (self.WL + self.WG) / (self.WL / self.LoL + self.WG / self.LoG); // no-slip density [Kg/m^3]
+        self.Head = LoNS * UTP.powf(2.0) / (2.0 * G) / 10000.0;
+        let LoTP = self.LoLS;
+        let muTP = self.muL * Landa + self.muG * (1.0 - Landa);
+        let ReTP = LoTP * UTP * self.ID / muTP;
+        let f0 = self.fanning(ReTP) * 4.0;
+        let LnLanda = -1.0 * Landa.ln();
+        let fTP = f0 * (1.0 + LnLanda / (1.281 - 0.478 * LnLanda + 0.444 * LnLanda.powf(2.0)
+            - 0.094 * LnLanda.powf(3.0) + 0.00843 * LnLanda.powf(4.0)));
+
+        self.Pfric = fTP * LoTP * self.ULLS.powf(2.0) / (2.0 * G * self.ID) * (self.LLS / self.Lu) / 10000.0 * 100.0 * self.SF;
+        let Pacc = self.LoL * ULTB / G * (1.0 - alfaTB) * (self.ULLS + ULTB) * (1.0 / self.Lu) / 10000.0 * 100.0;
+        self.Pfric = self.Pfric + Pacc;
+        self.Pgrav = (self.LoL * (1.0 - alfaSU) + self.LoG * alfaSU) / 10000.0 * 100.0;
+        self.Ef = (LoNS * 0.062428) * ((ULS + UGS) * 3.28084).powf(2.0) / 10000.0; // must transfer to imperial unit
     }
 
     fn BubbleModel(&mut self) {
