@@ -196,6 +196,66 @@ impl TwoPhaseLine for Horizontal {
         let ratio_b = self.ratioB(X, Y);
 
         // ratio D here
+        let t1 = 4.0 * CL / self.ID * (UY * self.ID / nuG).powf(-n) * self.LoL * UY.powf(2.0) / 2.0;
+        let t2 = (self.LoL - self.LoG) * G * (self.degree).cos();
+        let T2 = t1 / t2; // Eq. (37)
+
+        let SiB = (1.0 - (2.0 * hL - 1.0).powf(2.0)).sqrt(); // Eq. (14)
+        let SLB = std::f64::consts::PI - (2.0 * hL - 1.0).acos(); // Eq. (12)
+        let DLB = 4.0 * ALB / SLB; // Eq. (6)
+        let ratio_d = t2 * SiB * ULB.powf(2.0) * (ULB * DLB).powf(-n) / 8.0 / AGB;
+        // Eq. (36)
+
+        // EE here
+        let UGScal = ((UY + G * (self.LoL - self.LoG) * self.ST / self.LoL.powf(2.0)).powf(0.25))
+            * 1.15
+            / 3.0;
+        let EE = UX / UGScal;
+
+        // judge regime by ratio
+        if ratio_a <= 1.0 {
+            // left side
+            if ratio_c <= 1.0 {
+                // down side
+                self.regime_enum =
+                    Regime::HorizontalStratifiedSmoothFlow(String::from("Stratified Smooth Flow"));
+            } else {
+                // top side
+                self.regime_enum =
+                    Regime::HorizontalStratifiedWavyFlow(String::from("Stratified Wavy Flow"));
+            }
+        } else {
+            // right side
+            if ratio_b <= 1.0 {
+                self.regime_enum =
+                    Regime::HorizontalAnnularDispersedFlow(String::from("Annular-Dispersed Flow"));
+            } else {
+                if ratio_d <= 1.0 {
+                    if EE <= 1.0 {
+                        self.regime_enum = Regime::HorizontalElongatedBubbleFlow(String::from(
+                            "Elongated Bubble Flow",
+                        ));
+                    } else {
+                        self.regime_enum = Regime::HorizontalIntermittentSlugFlow(String::from(
+                            "Intermittent-Slug Flow",
+                        ));
+                    }
+                } else {
+                    self.regime_enum = Regime::HorizontalDispersedBubbleFlow(String::from(
+                        "Dispersed Bubble Flow",
+                    ));
+                }
+            }
+        }
+        self.flow_regime = match &self.regime_enum {
+            Regime::HorizontalStratifiedSmoothFlow(v) => v.to_string(),
+            Regime::HorizontalStratifiedWavyFlow(v) => v.to_string(),
+            Regime::HorizontalAnnularDispersedFlow(v) => v.to_string(),
+            Regime::HorizontalElongatedBubbleFlow(v) => v.to_string(),
+            Regime::HorizontalIntermittentSlugFlow(v) => v.to_string(),
+            Regime::HorizontalDispersedBubbleFlow(v) => v.to_string(),
+            _ => String::from(""),
+        };
     }
 
     fn model_cal(&mut self) {
