@@ -4,6 +4,12 @@ pub enum Regime {
     VerticalUpBubbleFlow(String),
     VerticalUpSlugAndChurnFlow(String),
     VerticalUpFinelyDispersedBubbleFlow(String),
+    HorizontalStratifiedSmoothFlow(String),
+    HorizontalStratifiedWavyFlow(String),
+    HorizontalAnnularDispersedFlow(String),
+    HorizontalElongatedBubbleFlow(String),
+    HorizontalIntermittentSlugFlow(String),
+    HorizontalDispersedBubbleFlow(String),
     NONE,
 }
 pub trait TwoPhaseLine {
