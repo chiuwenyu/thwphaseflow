@@ -99,6 +99,26 @@ impl Horizontal {
             XS.powi(2) * term5 - term6 - 4.0 * Y
         }
     }
+
+    fn ratioB(&self, X: f64, Y: f64) -> f64 {
+        let hL = 0.5; // Kellogg modify to 0.35, but original still take 0.5
+        let AB = std::f64::consts::PI / 4.0;
+        let SGB = (2.0f64 * hL - 1.0f64).acos();
+        let SLB = std::f64::consts::PI - (2.0 * hL - 1.0).acos();
+        let SiB = (1.0 - (2.0 * hL - 1.0).powf(2.0)).sqrt();
+        let ALB = 0.25 * (std::f64::consts::PI - SGB + (2.0 * hL - 1.0) * SiB);
+        let AGB = 0.25 * (SGB - (2.0 * hL - 1.0) * SiB);
+        let ULB = AB / ALB;
+        let UGB = AB / AGB;
+        let n = 0.2;
+        let m = 0.2;
+        let DLB = 4.0 * ALB / SLB;
+        let DGB = 4.0 * AGB / (SGB + SiB);
+        let term1 = (ULB * DLB).powf(-n) * ULB.powf(2.0) * SLB / ALB;
+        let term2 = (UGB * DGB).powf(-m) * UGB.powf(2.0) * (SGB / AGB + SiB / ALB + SiB / AGB);
+        let result = (X * X * term1 / (4.0 * Y + term2)).sqrt();
+        result
+    }
 }
 
 impl TwoPhaseLine for Horizontal {
@@ -117,7 +137,7 @@ impl TwoPhaseLine for Horizontal {
 
     fn flow_regime(&mut self) {
         // assume turbulent flow Eq.(8), see ref. 01
-        let x = (self.WL / self.WG).powf(0.9)
+        let X = (self.WL / self.WG).powf(0.9)
             * (self.LoG / self.LoL).sqrt()
             * (self.muL / self.muG).powf(0.1);
         let mut hLa = 0.001f64; // hla: 波浪的平衡液位高 left initial value
@@ -128,7 +148,7 @@ impl TwoPhaseLine for Horizontal {
         // solve non-linear equation by Bisection Method
         loop {
             hLm = (hLa + hLb) / 2.0;
-            if self.fhLL(self.ID, hLa, x) * self.fhLL(self.ID, hLm, x) < 0.0 {
+            if self.fhLL(self.ID, hLa, X) * self.fhLL(self.ID, hLm, X) < 0.0 {
                 hLb = hLm;
             } else {
                 hLa = hLm;
@@ -157,6 +177,25 @@ impl TwoPhaseLine for Horizontal {
         // Eq. (25) for Curve A
 
         // ratio C here
+        let nuL = self.muL / self.LoL; // Dynamic Viscosity of Liquid [Stoke]
+        let ReLS = self.ID * UY / nuL; // Liquid Slug Reynold Number [-]
+        let K = F * ReLS.sqrt(); // Wavy flow dimensionless parameter [-]
+        let S: f64 = 0.01; // 隱藏參數 [-]
+        let ratio_c = K * ULB.sqrt() * UGB * S.sqrt() / 2.0; // Eq. (30) for Curve C
+
+        // ratio B here
+        let term3 = (self.LoL - self.LoG) * G * (self.degree).sin(); // Eq. (9) Numerator
+        let CG = 0.046; // 氣體摩擦因子關聯式中的常數 for turbulent flow
+        let CL = 0.046; // 氣體摩擦因子關聯式中的常數 for turbulent flow
+        let n = 0.2; // Eq. (5) 中的次幕 for turbulent flow
+        let m = 0.2; // Eq. (5) 中的次幕 for turbulent flow
+        let nuG = self.muG / self.LoG; // Dynamic Viscosity of Gas [Stoke]
+        let term4 =
+            4.0 * CG / self.ID * (UX * self.ID / nuG).powf(-m) * (self.LoG * UX.powf(2.0) / 2.0); // Eq. (9) denominator
+        let Y = term3 / term4; // 流體在流動方向之重力與壓降比值 (向上流動取負，向下流動取正，水平管 Y =0;
+        let ratio_b = self.ratioB(X, Y);
+
+        // ratio D here
     }
 
     fn model_cal(&mut self) {
