@@ -203,7 +203,7 @@ impl TwoPhaseLine for Horizontal {
         let SiB = (1.0 - (2.0 * hL - 1.0).powf(2.0)).sqrt(); // Eq. (14)
         let SLB = std::f64::consts::PI - (2.0 * hL - 1.0).acos(); // Eq. (12)
         let DLB = 4.0 * ALB / SLB; // Eq. (6)
-        let ratio_d = t2 * SiB * ULB.powf(2.0) * (ULB * DLB).powf(-n) / 8.0 / AGB;
+        let ratio_d = T2 * SiB * ULB.powf(2.0) * (ULB * DLB).powf(-n) / 8.0 / AGB;
         // Eq. (36)
 
         // EE here
