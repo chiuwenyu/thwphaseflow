@@ -8,7 +8,6 @@ mod vertical_up;
 
 pub fn vertical_up_validate() {
     //Region Test data for Annular Flow
-
     // Liquid data
     let wl: f64 = 72036.365; // [kg/hr]
     let lo_l: f64 = 379.63758; // [kg/m^3]
@@ -144,36 +143,36 @@ pub fn vertical_up_validate() {
 pub fn horizontal_validate() {
     //Region Test data for Stratified Wavy Flow
     // Liquid data
-    let wl: f64 = 64870.62744; // [kg/hr]
-    let lo_l: f64 = 790.9917; // [kg/m^3]
-    let mu_l: f64 = 0.241; // [cP]
-    let surface_tension: f64 = 14.78; // [dyne/cm]
-                                      // Vapor data
-    let wg: f64 = 21623.54248; // [kg/hr]
-    let lo_g: f64 = 4.58128; // [kg/m^3]
-    let mu_g: f64 = 0.0091; // [cP]
-                            // Misc. data
-    let id: f64 = 23.25; // [in]
-    let slope: f64 = 0.0; // [degree]
-    let rough: f64 = 0.04572; // [mm]
-    let sf: f64 = 1.0; // [-]
-
-    let mut p1 = Horizontal::new(
-        wl,
-        wg,
-        lo_l,
-        lo_g,
-        mu_l,
-        mu_g,
-        surface_tension,
-        rough,
-        sf,
-        id,
-        slope,
-    );
-    p1.unit_transfer();
-    p1.flow_regime();
-    println!("p1 flow regime << {} >>", p1.flow_regime);
+    // let wl: f64 = 64870.62744; // [kg/hr]
+    // let lo_l: f64 = 790.9917; // [kg/m^3]
+    // let mu_l: f64 = 0.241; // [cP]
+    // let surface_tension: f64 = 14.78; // [dyne/cm]
+    //                                   // Vapor data
+    // let wg: f64 = 21623.54248; // [kg/hr]
+    // let lo_g: f64 = 4.58128; // [kg/m^3]
+    // let mu_g: f64 = 0.0091; // [cP]
+    //                         // Misc. data
+    // let id: f64 = 23.25; // [in]
+    // let slope: f64 = 0.0; // [degree]
+    // let rough: f64 = 0.04572; // [mm]
+    // let sf: f64 = 1.0; // [-]
+    //
+    // let mut p1 = Horizontal::new(
+    //     wl,
+    //     wg,
+    //     lo_l,
+    //     lo_g,
+    //     mu_l,
+    //     mu_g,
+    //     surface_tension,
+    //     rough,
+    //     sf,
+    //     id,
+    //     slope,
+    // );
+    // p1.unit_transfer();
+    // p1.flow_regime();
+    // println!("p1 flow regime << {} >>", p1.flow_regime);
     // p1.model_cal();
     // println!("Tow-Phase Density (kg/m^3) = {:.4}", p1.Loip);
     // println!("Liquid Volume Fraction (-) = {:.3}", p1.RL);
@@ -187,21 +186,64 @@ pub fn horizontal_validate() {
 
     //Region Test data for Stratified Wavy Flow
     // Liquid data
-    let wl: f64 = 116604.0; // [kg/hr]
-    let lo_l: f64 = 803.0; // [kg/m^3]
-    let mu_l: f64 = 0.45; // [cP]
-    let surface_tension: f64 = 9.3; // [dyne/cm]
-                                    // Vapor data
-    let wg: f64 = 1896.0; // [kg/hr]
-    let lo_g: f64 = 8.49; // [kg/m^3]
-    let mu_g: f64 = 0.02; // [cP]
-                          // Misc. data
+    // let wl: f64 = 116604.0; // [kg/hr]
+    // let lo_l: f64 = 803.0; // [kg/m^3]
+    // let mu_l: f64 = 0.45; // [cP]
+    // let surface_tension: f64 = 9.3; // [dyne/cm]
+    //                                 // Vapor data
+    // let wg: f64 = 1896.0; // [kg/hr]
+    // let lo_g: f64 = 8.49; // [kg/m^3]
+    // let mu_g: f64 = 0.02; // [cP]
+    //                       // Misc. data
+    // let id: f64 = 7.981; // [in]
+    // let slope: f64 = 0.0; // [degree]
+    // let rough: f64 = 0.046; // [mm]
+    // let sf: f64 = 1.0; // [-]
+    //
+    // let mut p2 = Horizontal::new(
+    //     wl,
+    //     wg,
+    //     lo_l,
+    //     lo_g,
+    //     mu_l,
+    //     mu_g,
+    //     surface_tension,
+    //     rough,
+    //     sf,
+    //     id,
+    //     slope,
+    // );
+    // p2.unit_transfer();
+    // p2.flow_regime();
+    // println!("p2 flow regime << {} >>", p2.flow_regime);
+    // p1.model_cal();
+    // println!("Tow-Phase Density (kg/m^3) = {:.4}", p2.Loip);
+    // println!("Liquid Volume Fraction (-) = {:.3}", p2.RL);
+    // println!("Two-Phase Velocity (m/sec) = {:.4}", p2.UTP);
+    // println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p2.Head);
+    // println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p2.Pfric);
+    // println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p2.Pgrav);
+    // println!("Erosion Factor (-) = {:.3}", p2.Ef);
+    // println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
+    // EndRegion
+
+    //Region Test data for Annular-Dispersed Flow (Similarity Model)
+    // Liquid data
+    let wl: f64 = 64870.62744; // [kg/hr]
+    let lo_l: f64 = 790.9917; // [kg/m^3]
+    let mu_l: f64 = 0.241; // [cP]
+    let surface_tension: f64 = 14.78; // [dyne/cm]
+                                      // Vapor data
+    let wg: f64 = 21623.54248; // [kg/hr]
+    let lo_g: f64 = 4.58128; // [kg/m^3]
+    let mu_g: f64 = 0.0091; // [cP]
+                            // Misc. data
     let id: f64 = 7.981; // [in]
     let slope: f64 = 0.0; // [degree]
-    let rough: f64 = 0.046; // [mm]
+    let rough: f64 = 0.04572; // [mm]
     let sf: f64 = 1.0; // [-]
 
-    let mut p2 = Horizontal::new(
+    let mut p3 = Horizontal::new(
         wl,
         wg,
         lo_l,
@@ -214,18 +256,18 @@ pub fn horizontal_validate() {
         id,
         slope,
     );
-    p2.unit_transfer();
-    p2.flow_regime();
-    println!("p2 flow regime << {} >>", p2.flow_regime);
-    // p1.model_cal();
-    // println!("Tow-Phase Density (kg/m^3) = {:.4}", p2.Loip);
-    // println!("Liquid Volume Fraction (-) = {:.3}", p2.RL);
-    // println!("Two-Phase Velocity (m/sec) = {:.4}", p2.UTP);
-    // println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p2.Head);
-    // println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p2.Pfric);
-    // println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p2.Pgrav);
-    // println!("Erosion Factor (-) = {:.3}", p2.Ef);
-    // println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
+    p3.unit_transfer();
+    p3.flow_regime();
+    println!("p1 flow regime << {} >>", p3.flow_regime);
+    p3.model_cal();
+    println!("Tow-Phase Density (kg/m^3) = {:.4}", p3.Loip);
+    println!("Liquid Volume Fraction (-) = {:.3}", p3.RL);
+    println!("Two-Phase Velocity (m/sec) = {:.4}", p3.UTP);
+    println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p3.Head);
+    println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p3.Pfric);
+    println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p3.Pgrav);
+    println!("Erosion Factor (-) = {:.3}", p3.Ef);
+    println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
     // EndRegion
 }
 

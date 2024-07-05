@@ -29,6 +29,15 @@ pub struct Horizontal {
     pub regime_enum: Regime, // identify the flow regime(enum)
     pub flow_regime: String, // identify the flow regime(String)
 
+    // for Similarity Analysis Model
+    pub Loip: f64,  // two phase density [kg/m^3]
+    pub RL: f64,    // Liquid Volume Fraction [-]
+    pub UTP: f64,   // Two-Phase Velocity [m/sec]
+    pub Head: f64,  // 1.0 Velocity Head [kgf/cm^2]
+    pub Pfric: f64, // Frictional Pressure Loss [kgf/cm^2/100m]
+    pub Pgrav: f64, // Elevation Head Loss [kgf/cm^2/100m]
+    pub Ef: f64,    // Erosion Factor [-]
+
     // state variable
     is_unit_change: bool, // is call the unit_transfer and transfer to unit
 }
@@ -62,6 +71,13 @@ impl Horizontal {
             is_unit_change: false,
             regime_enum: Regime::NONE,
             flow_regime: String::from(""),
+            Loip: 0.0,
+            RL: 0.0,
+            UTP: 0.0,
+            Head: 0.0,
+            Pfric: 0.0,
+            Pgrav: 0.0,
+            Ef: 0.0,
         }
     }
 }
@@ -119,6 +135,97 @@ impl Horizontal {
         let result = (X * X * term1 / (4.0 * Y + term2)).sqrt();
         result
     }
+
+    fn fanning(&self, Re: f64) -> f64 {
+        // by Chen (1979)
+        if Re < 2100.0 {
+            16.0 / Re
+        } else {
+            let a = (self.rough / self.ID).powf(1.1098) / 2.8257 + (7.149 / Re).powf(0.8961);
+            let b = -4.0 * ((self.rough / self.ID / 3.7065) - (5.0452 / Re) * (a.log10())).log10();
+            1.0 / b.powf(2.0)
+        }
+    }
+
+    fn SimilarityAnalysis(&mut self) {
+        // for Anaular flow pattern
+        use std::f64;
+        let area = f64::consts::PI * self.ID * self.ID / 4.0; // pipe area [m^2]
+        let Gt = (self.WL + self.WG) / area / 3600.0; // Eq (22)
+
+        let UGS = self.WG / self.LoG / area / 3600.0; // Vapor Velocity [m/s]
+        let ULS = self.WL / self.LoL / area / 3600.0; // Liquid Velocity [m/s]
+        self.UTP = UGS + ULS; // Two Phase Velocity [m/s], Eq (23)
+
+        let lamda = ULS / (ULS + UGS); // Liquid Volume Fraction [-], Eq (24)
+        let mut Rgi = 0.5; // Gas Hold-up (Rg) initial value [-]
+        let eps = 1e-4; // allowable tolerance
+        let np = 100; // trial number
+        let i = 0; // loop counter
+
+        for i in 0..np {
+            // (5) Calc. Re and Fr
+            let Re = self.ID * Gt / (Rgi * self.muG + (1.0 - Rgi) * self.muL); // Eq. (25)
+            let Fr = self.UTP * self.UTP / (G * self.ID); // Froude Number, Eq. (26)
+
+            // (6) Calc. Z and K
+            let Z = Re.powf(0.167) * Fr.powf(0.125) / lamda.powf(0.25); // Eq.(27)
+            let K;
+            if Z < 10.0 {
+                K = -0.16367 + 0.31037 * Z - 0.03525 * Z * Z + 0.001366 * Z * Z * Z;
+            } else {
+                K = 0.75545 + 0.003585 * Z - 0.1436e-4 * Z * Z;
+            }
+
+            // (7) Calc Rg (cal.)
+            let x = self.WG / (self.WG + self.WL);
+            let Rgcal = K / ((1.0 / x - 1.0) * (self.LoG / self.LoL) + 1.0); // Eq. (28)
+
+            // (8) Calc delta and judgement convergence condition
+            let delta = (Rgcal - Rgi).abs();
+            if delta > eps {
+                Rgi = (Rgcal + Rgi) / 2.0;
+                // Repeat calc (5), (6), (7)
+            } else {
+                break;
+            }
+        }
+
+        let Rg;
+        if i < np {
+            Rg = Rgi; // certain Rg
+        } else {
+            Rg = 0.0; // no convergence
+            return;
+        }
+
+        // Calculate Result
+        self.RL = 1.0 - Rg;
+        let LoTP =
+            self.LoL * lamda.powf(2.0) / (1.0 - Rg) + self.LoG * (1.0 - lamda).powf(2.0) / Rg; // Eq. (29)
+        let muTP = self.muL * lamda + self.muG * (1.0 - lamda);
+        let ReTP = self.ID * (ULS + UGS) * LoTP / muTP; // Eq. (30)
+        let f0 = self.fanning(ReTP) * 4.0;
+        let LnLanda = -1.0 * lamda.ln();
+        let fTP = (1.0
+            + LnLanda
+                / (1.281 - 0.478 * LnLanda + 0.444 * LnLanda.powf(2.0)
+                    - 0.094 * LnLanda.powf(3.0)
+                    + 0.00843 * LnLanda.powf(4.0)))
+            * f0; // Eq. (31)
+
+        self.Pfric =
+            fTP * LoTP * (ULS + UGS).powf(2.0) / (2.0 * G * self.ID) / 10000.0 * 100.0 * self.SF; // Eq. (32)
+        self.Pgrav = (self.LoL * (1.0 - Rg) + self.LoG * Rg) / 10000.0 * 100.0; // Eq. (33)
+        self.Loip = self.LoL * (1.0 - Rg) + self.LoG * Rg;
+        let LoNS = (self.WL + self.WG) / (self.WL / self.LoL + self.WG / self.LoG);
+        self.Head = LoNS * self.UTP.powf(2.0) / (2.0 * G) / 10000.0;
+        self.Ef = (LoNS * 0.062428) * ((ULS + UGS) * 3.28084).powf(2.0) / 10000.0;
+    }
+
+    fn SlugModel(&mut self) {}
+
+    fn Stratified(&mut self) {}
 }
 
 impl TwoPhaseLine for Horizontal {
@@ -259,6 +366,16 @@ impl TwoPhaseLine for Horizontal {
     }
 
     fn model_cal(&mut self) {
-        todo!()
+        match self.regime_enum {
+            Regime::HorizontalAnnularDispersedFlow(..) => self.SimilarityAnalysis(),
+            Regime::HorizontalDispersedBubbleFlow(..) => self.SimilarityAnalysis(),
+            Regime::HorizontalElongatedBubbleFlow(..) => self.SlugModel(),
+            Regime::HorizontalIntermittentSlugFlow(..) => self.SlugModel(),
+            Regime::HorizontalStratifiedSmoothFlow(..) => self.Stratified(),
+            Regime::HorizontalStratifiedWavyFlow(..) => self.Stratified(),
+            _ => {
+                println!("No match model for this flow pattern !!")
+            }
+        }
     }
 }
