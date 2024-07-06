@@ -48,6 +48,14 @@ pub struct Horizontal {
     pub Pacc: f64, // Eq (69) acceleration loss
     // Head, Pfric, Ef same as Similarity Model
 
+    // for Stratified model
+    pub LoTP: f64,  // Two phase density [kg/m^3]
+    pub depth: f64, // Liquid Depth -BOP (m)
+    pub velL: f64,  // Liquid Velocity [m/s]
+    pub velG: f64,  // Vapor Velocity [m/s]
+    // RL same as Similarity Analysis Model
+    // Head, Pfric, Ef same as Similarity Model
+
     // state variable
     is_unit_change: bool, // is call the unit_transfer and transfer to unit
 }
@@ -95,6 +103,11 @@ impl Horizontal {
             Ls: 0.0,
             Lu: 0.0,
             Pacc: 0.0,
+
+            LoTP: 0.0,
+            depth: 0.0,
+            velL: 0.0,
+            velG: 0.0,
         }
     }
 }
@@ -292,7 +305,63 @@ impl Horizontal {
         // must transfer to imperial unit
     }
 
-    fn Stratified(&mut self) {}
+    fn Stratified(&mut self) {
+        // assume turbulent flow Eq.(8), see ref. 01
+        let X = (self.WL / self.WG).powf(0.9)
+            * (self.LoG / self.LoL).sqrt()
+            * (self.muL / self.muG).powf(0.1);
+        // hla 波浪的平衡液位高 left initial value
+        let mut hLa = 0.001f64;
+        // hlb 波浪的平衡液位高 right initial value
+        let mut hLb = 0.999f64;
+        // hlm mean value
+        let mut hLm;
+        // allowable tolerance
+        let eps = 1e-4;
+        // solve non-linear equation by Bisection Method
+        loop {
+            hLm = (hLa + hLb) / 2.0;
+            if self.fhLL(self.ID, hLa, X) * self.fhLL(self.ID, hLm, X) < 0.0 {
+                hLb = hLm;
+            } else {
+                hLa = hLm;
+            }
+            if (hLb - hLa).abs() <= eps {
+                break;
+            }
+        }
+
+        let hL = hLm; // hL 波浪的平衡液位高 [m]
+        let term1 = (2.0 * hL - 1.0).acos(); // Eq. (13)
+        let term2 = (1.0 - (2.0 * hL - 1.0).powf(2.0)).sqrt(); // Eq. (14)
+        let ALB = 0.25 * (std::f64::consts::PI - term1 + (2.0 * hL - 1.0) * term2); // Eq. (10)
+        let AGB = 0.25 * (term1 - (2.0 * hL - 1.0) * term2); // Eq. (11)
+        self.RL = ALB / (ALB + AGB); // Liquid Holdup [-]
+        self.LoTP = self.LoL * self.RL + self.LoG * (1.0 - self.RL); // Two-Phase Density [Kg/m^3]
+        self.depth = hL * self.ID; // Liquid Depth - BOP [m]
+        let area = std::f64::consts::PI * self.ID * self.ID / 4.0; // pipe area [m^2]
+        let UGS = self.WG / self.LoG / area / 3600.0; // Vapor Velocity [m/s]
+        let ULS = self.WL / self.LoL / area / 3600.0; // Liquid Velocity [m/s]
+        let AB = std::f64::consts::PI / 4.0; // 相對於面積參考量 D^2 的無因次管截面積
+        let ULB = AB / ALB; // Eq. (15)
+        let UGB = AB / AGB; // Eq. (16)
+        self.velL = ULB * ULS; // Liquid Velocity [m/s]
+        self.velG = UGB * UGS; // Vapor Velocity [m/s]
+        let SGB = (2.0 * hL - 1.0).acos();
+        let SiB = (1.0 - (2.0 * hL - 1.0).powf(2.0)).sqrt();
+        let DGB = 4.0 * AGB / (SGB + SiB);
+        let m = 0.2;
+        let fig2 = 0.25 * UGB.powf(2.0) * (UGB * DGB).powf(-m) / AGB * (SGB + SiB); // Eq. (40), assume fi / fG ~ 1.0
+        let CG = 0.046;
+        let nuG = self.muG / self.LoG; // Dynamic Viscosity of Gas [Stoke]
+        let Pgs =
+            4.0 * CG / self.ID * (UGS * self.ID / nuG).powf(-m) * (self.LoG * UGS.powf(2.0) / 2.0); // Eq. (9) denominator
+        self.Pfric = fig2 * Pgs / GC / 10000.0 * 100.0 * self.SF;
+        let LoNS = (self.WL + self.WG) / (self.WL / self.LoL + self.WG / self.LoG); // No-Slip Velocity [m/s]
+        let UTP = UGS + ULS; // Two Phase Velocity [m/s]
+        self.Head = LoNS * UTP.powf(2.0) / (2.0 * G) / 10000.0; // 1.0 Velocity Head
+        self.Ef = (LoNS * 0.062428) * (UTP * 3.28084).powf(2.0) / 10000.0; // Erosion Factor must transfer to imperial unit
+    }
 }
 
 impl TwoPhaseLine for Horizontal {
