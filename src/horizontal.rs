@@ -38,6 +38,16 @@ pub struct Horizontal {
     pub Pgrav: f64, // Elevation Head Loss [kgf/cm^2/100m]
     pub Ef: f64,    // Erosion Factor [-]
 
+    // for Slug model
+    pub LoSU: f64, // Two-phase slug unit density [kg/m^3]
+    pub LoLS: f64, // Liquid Slug Unit Density [kg/m^3]
+    // RL, Liquid Volume Fraction same as Similarity Model
+    pub Us: f64,   // Liquid Slug Velocity [m/s]
+    pub Ls: f64,   // Liquid Slug Length [m]
+    pub Lu: f64,   // Slug Unit Length [m]
+    pub Pacc: f64, // Eq (69) acceleration loss
+    // Head, Pfric, Ef same as Similarity Model
+
     // state variable
     is_unit_change: bool, // is call the unit_transfer and transfer to unit
 }
@@ -78,6 +88,13 @@ impl Horizontal {
             Pfric: 0.0,
             Pgrav: 0.0,
             Ef: 0.0,
+
+            LoSU: 0.0,
+            LoLS: 0.0,
+            Us: 0.0,
+            Ls: 0.0,
+            Lu: 0.0,
+            Pacc: 0.0,
         }
     }
 }
@@ -223,7 +240,57 @@ impl Horizontal {
         self.Ef = (LoNS * 0.062428) * ((ULS + UGS) * 3.28084).powf(2.0) / 10000.0;
     }
 
-    fn SlugModel(&mut self) {}
+    fn SlugModel(&mut self) {
+        let area = std::f64::consts::PI * self.ID * self.ID / 4.0; // pipe area [m^2]
+        let UGS = self.WG / self.LoG / area / 3600.0; // Vapor Velocity [m/s]
+        let ULS = self.WL / self.LoL / area / 3600.0; // Liquid Velocity [m/s]
+        let UM = UGS + ULS; // Vapor-Liquid Mixture Velocity [m/s]
+        self.Us = UM; // Slug Liquid mean Velocity [m/s], Eq. (50), Dukler (1975) as Rs = 1 in Eq. (49)
+        let alfa = 8.66;
+        let beta = 1.39;
+        let Rs = 1.0 / (1.0 + (self.Us / alfa).powf(beta)); // Liquid Volume Fraction in Liquid-Slug [-], Eq. (54)
+        let Res = self.ID * self.Us * (self.LoL * Rs + self.LoG * (1.0 - Rs))
+            / (self.muL * Rs + self.muG * (1.0 - Rs)); // Reynold Number of Liquid-Slug [-], Eq. (66)
+        let c = 0.021 * Res.ln() + 0.022; // Eq. (46) parameter
+        let Ut = (1.0 + c) * self.Us; // Average Moving Velocity of Whole Slug Unit [m/s], Eq. (46)
+        self.RL = (ULS + Rs * (Ut - UM)) / Ut; // Liquid Hold-Up of Slug Unit [-]
+        self.Ls = 30.0 * self.ID; // Liquid-Slug Length [m]
+        let mut Rfe = self.RL * 0.5; // Liquid Hold-Up of Film End [-]
+        let mut delta = 1.0; // absolute error
+        let eps = 1e-4; // Allowable Tolerance
+        let mut Lf = 0.0; // Liquid Film Length [m]
+        let mut Lu; // Slug Unit Length [m]
+
+        while delta > eps {
+            Lf = self.Ls * (Rs - self.RL) / (self.RL - Rfe); // Liquid Film Length [m]
+            Lu = Lf + self.Ls; // Length of Liquid Slug [m]
+            let Rfecal = Rs - (Rs * self.Us - ULS) * Lu / Lf / Ut; // Rfe calculated value
+            delta = (Rfecal - Rfe).abs();
+            Rfe = (Rfecal + Rfe) / 2.0;
+        }
+
+        self.Lu = Lf + self.Ls;
+        self.LoSU = self.LoL * self.RL + self.LoG * (1.0 - self.RL);
+        self.LoLS = self.LoL * Rs + self.LoG * (1.0 - Rs);
+        let Ufe = (ULS * (self.Ls + Lf) - Rs * self.Us * self.Ls) / (Rfe * Lf); // Liquid mean Velocity of liquid film end. [m/s]
+        let Lm = 0.15 * (self.Us - Ufe).powf(2.0) / GC; // Mixture area length [m] Eq. (68)
+        let f0 = self.fanning(Res) * 4.0;
+        self.Pfric =
+            f0 * (self.LoL * Rs + self.LoG * (1.0 - Rs)) * self.Us.powf(2.0) * (self.Ls - Lm)
+                / self.Lu
+                / (2.0 * GC * self.ID)
+                / 10000.0
+                * 100.0
+                * self.SF;
+        self.Pacc =
+            self.LoL * Rfe * (Ut - Ufe) * (self.Us - Ufe) / (GC * self.Lu) / 10000.0 * 100.0; // Eq. (69) acceleration loss
+        self.Pfric = self.Pfric + self.Pacc;
+        let LoNS = (self.WL + self.WG) / (self.WL / self.LoL + self.WG / self.LoG); // No-slip Two-Phase Density [Kg/m^3]
+        let UTP = self.Us;
+        self.Head = LoNS * UTP.powf(2.0) / (2.0 * G) / 10000.0;
+        self.Ef = (LoNS * 0.062428) * ((ULS + UGS) * 3.28084).powf(2.0) / 10000.0;
+        // must transfer to imperial unit
+    }
 
     fn Stratified(&mut self) {}
 }
