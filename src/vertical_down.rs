@@ -32,7 +32,14 @@ pub struct VerticalDown {
     pub regime_enum: Regime, // identify the flow regime(enum)
     pub flow_regime: String, // identify the flow regime(String)
 
-    // for Similarity Analysis Model
+    // for Annular Model
+    pub LoTP: f64,  // Two-phase density [kg/m^3]
+    pub UTP: f64,   // Two-phase velocity [m/s]
+    pub alfaL: f64, // Liquid volume fraction
+    pub Head: f64,  // 1.0 velocity head [kgf/cm^2]
+    pub Pfric: f64, // Frictional pressure loss (kgf/cm^2/100m]
+    pub Pgrav: f64, // Elevation Head Loss [kgf/cm^2/100m]
+    pub Ef: f64,    // Erosion Factor [-]
 
     // state variable
     is_unit_change: bool, // is call the unit_transfer and transfer to unit
@@ -67,6 +74,13 @@ impl crate::vertical_down::VerticalDown {
             is_unit_change: false,
             regime_enum: Regime::NONE,
             flow_regime: String::from(""),
+            LoTP: 0.0,
+            UTP: 0.0,
+            alfaL: 0.0,
+            Head: 0.0,
+            Pfric: 0.0,
+            Pgrav: 0.0,
+            Ef: 0.0,
         }
     }
 
@@ -112,7 +126,68 @@ impl crate::vertical_down::VerticalDown {
         ULScal
     }
 
-    fn AnnularModel(&mut self) {}
+    fn fanning(&self, Re: f64) -> f64 {
+        // by Chen (1979)
+        if Re < 2100.0 {
+            16.0 / Re
+        } else {
+            let a = (self.rough / self.ID).powf(1.1098) / 2.8257 + (7.149 / Re).powf(0.8961);
+            let b = -4.0 * ((self.rough / self.ID / 3.7065) - (5.0452 / Re) * (a.log10())).log10();
+            1.0 / b.powf(2.0)
+        }
+    }
+
+    fn AnnularModel(&mut self) {
+        let area = std::f64::consts::PI / 4.0 * self.ID * self.ID; // pipe inside cross section area [m^2]
+        let UGS = self.WG / (self.LoG * area) / 3600.0; // Superficial Vapor velocity [m/s]
+        let ULS = self.WL / (self.LoL * area) / 3600.0; // Superficial Liquid velocity [m/s]
+
+        // Assuming Fanning is a function that you have defined elsewhere
+        let fSL = self.fanning(self.LoL * ULS * self.ID / self.muL); // Fanning friction factor for Liquid Phase only in pipe [-]
+        let fSG = self.fanning(self.LoG * UGS * self.ID / self.muG); // Fanning friction factor for Vapor Phase only in pipe [-]
+
+        let X2 = fSL * self.LoL * ULS.powi(2) / (fSG * self.LoG * UGS.powi(2)); // Martinelli parameter [-]
+        let Y = G * (self.LoL - self.LoG) / (4.0 * fSG * self.LoG * UGS.powi(2) / (2.0 * self.ID)); // Martinelli parameter [-]
+
+        self.alfaL = 0.5; // initial value for Liquid Hold-Up [-]
+        let mut delta: f64; // absolute error [-]
+        let eps = 1e-4; // allowable tolerance [-]
+        let mut gx; // Liquid Holdup function eq.(29)
+        let mut gpx; // 1st order derivated function
+        let mut alfaLcal; // alfaL (cal.) [-]
+
+        loop {
+            gx = X2 * (1.0 - self.alfaL).powf(2.5)
+                - self.alfaL.powf(2.0)
+                - 75.0 * self.alfaL.powf(3.0)
+                - Y * (1.0 - self.alfaL).powf(2.5) * self.alfaL.powf(3.0);
+
+            gpx = -2.5 * X2 * (1.0 - self.alfaL).powf(1.5)
+                - 2.0 * self.alfaL
+                - 225.0 * self.alfaL.powf(2.0)
+                - 3.0 * Y * (1.0 - self.alfaL).powf(2.5) * self.alfaL.powf(2.0)
+                + 2.5 * Y * (1.0 - self.alfaL).powf(1.5) * self.alfaL.powf(3.0);
+
+            alfaLcal = self.alfaL - gx / gpx;
+            let delta = (self.alfaL - alfaLcal).abs();
+            self.alfaL = alfaLcal;
+
+            if delta <= eps {
+                break;
+            }
+        }
+        self.Pfric = 2.0 * fSG * self.LoG * UGS.powi(2) / (G * self.ID) * (1.0 + 75.0 * self.alfaL)
+            / (1.0 - self.alfaL).powf(2.5)
+            / 10000.0
+            * 100.0
+            * self.SF;
+        self.Pgrav = self.LoG / 10000.0 * 100.0;
+        self.LoTP = self.LoL * self.alfaL + self.LoG * (1.0 - self.alfaL);
+        self.UTP = UGS + ULS;
+        let LoNS = (self.WL + self.WG) / (self.WL / self.LoL + self.WG / self.LoG);
+        self.Head = LoNS * self.UTP.powi(2) / (2.0 * G) / 10000.0;
+        self.Ef = (LoNS * 0.062428) * (self.UTP * 3.28084).powi(2) / 10000.0; // must transfer to imperial unit
+    }
 
     fn SlugModel(&mut self) {}
 

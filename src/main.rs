@@ -308,15 +308,15 @@ pub fn vertical_down_validate() {
     p1.unit_transfer();
     p1.flow_regime();
     println!("flow regime << {} >>", p1.flow_regime);
-    // p1.model_cal();
-    // println!("Tow-Phase Density (kg/m^3) = {:.4}", p1.Loip);
-    // println!("Liquid Volume Fraction (-) = {:.3}", p1.RL);
-    // println!("Two-Phase Velocity (m/sec) = {:.4}", p1.UTP);
-    // println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p1.Head);
-    // println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p1.Pfric);
-    // println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p1.Pgrav);
-    // println!("Erosion Factor (-) = {:.3}", p1.Ef);
-    // println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
+    p1.model_cal();
+    println!("Tow-Phase Density (kg/m^3) = {:.4}", p1.LoTP);
+    println!("Two-Phase Velocity (m/sec) = {:.4}", p1.UTP);
+    println!("Liquid Volume Fraction (-) = {:.4}", p1.alfaL);
+    println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p1.Head);
+    println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p1.Pfric);
+    println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p1.Pgrav);
+    println!("Erosion Factor (-) = {:.3}", p1.Ef);
+    println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
     // EndRegion
 
     //Region Test data for Dispersed Bubble Flow
