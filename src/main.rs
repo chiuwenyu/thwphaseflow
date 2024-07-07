@@ -321,55 +321,12 @@ pub fn vertical_down_validate() {
 
     //Region Test data for Dispersed Bubble Flow
     // Liquid data
-    let wl: f64 = 4536.0; // [kg/hr]
-    let lo_l: f64 = 801.0; // [kg/m^3]
-    let mu_l: f64 = 0.6; // [cP]
-    let surface_tension: f64 = 10.0; // [dyne/cm]
-                                     // Vapor data
-    let wg: f64 = 0.4536; // [kg/hr]
-    let lo_g: f64 = 8.0; // [kg/m^3]
-    let mu_g: f64 = 0.01; // [cP]
-                          // Misc. data
-    let id: f64 = 1.049; // [in]
-    let slope: f64 = 0.0; // [degree]
-    let rough: f64 = 0.046; // [mm]
-    let sf: f64 = 1.0; // [-]
-
-    let mut p2 = VerticalDown::new(
-        wl,
-        wg,
-        lo_l,
-        lo_g,
-        mu_l,
-        mu_g,
-        surface_tension,
-        rough,
-        sf,
-        id,
-        slope,
-    );
-    p2.unit_transfer();
-    p2.flow_regime();
-    println!("flow regime << {} >>", p2.flow_regime);
-    p2.model_cal();
-    println!("Tow-Phase Density (kg/m^3) = {:.4}", p2.LoTP);
-    println!("Liquid Volume Fraction (-) = {:.4}", p2.HL);
-    println!("Two-Phase Velocity (m/sec) = {:.4}", p2.UTP);
-    println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p2.Head);
-    println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p2.Pfric);
-    println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p2.Pgrav);
-    println!("Erosion Factor (-) = {:.3}", p2.Ef);
-    println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
-    // EndRegion
-
-    //Region Test data for Slug Flow
-    // Liquid data
-    // let wl: f64 = 12000.0; // [kg/hr]
+    // let wl: f64 = 4536.0; // [kg/hr]
     // let lo_l: f64 = 801.0; // [kg/m^3]
     // let mu_l: f64 = 0.6; // [cP]
     // let surface_tension: f64 = 10.0; // [dyne/cm]
     //                                  // Vapor data
-    // let wg: f64 = 450.0; // [kg/hr]
+    // let wg: f64 = 0.4536; // [kg/hr]
     // let lo_g: f64 = 8.0; // [kg/m^3]
     // let mu_g: f64 = 0.01; // [cP]
     //                       // Misc. data
@@ -378,7 +335,7 @@ pub fn vertical_down_validate() {
     // let rough: f64 = 0.046; // [mm]
     // let sf: f64 = 1.0; // [-]
     //
-    // let mut p3 = VerticalDown::new(
+    // let mut p2 = VerticalDown::new(
     //     wl,
     //     wg,
     //     lo_l,
@@ -391,18 +348,61 @@ pub fn vertical_down_validate() {
     //     id,
     //     slope,
     // );
-    // p3.unit_transfer();
-    // p3.flow_regime();
-    // println!("flow regime << {} >>", p3.flow_regime);
-    // p1.model_cal();
-    // println!("Tow-Phase Density (kg/m^3) = {:.4}", p3.Loip);
-    // println!("Liquid Volume Fraction (-) = {:.3}", p3.RL);
-    // println!("Two-Phase Velocity (m/sec) = {:.4}", p3.UTP);
-    // println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p3.Head);
-    // println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p3.Pfric);
-    // println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p3.Pgrav);
-    // println!("Erosion Factor (-) = {:.3}", p3.Ef);
+    // p2.unit_transfer();
+    // p2.flow_regime();
+    // println!("flow regime << {} >>", p2.flow_regime);
+    // p2.model_cal();
+    // println!("Tow-Phase Density (kg/m^3) = {:.4}", p2.LoTP);
+    // println!("Liquid Volume Fraction (-) = {:.4}", p2.HL);
+    // println!("Two-Phase Velocity (m/sec) = {:.4}", p2.UTP);
+    // println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p2.Head);
+    // println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p2.Pfric);
+    // println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p2.Pgrav);
+    // println!("Erosion Factor (-) = {:.3}", p2.Ef);
     // println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
+    // EndRegion
+
+    //Region Test data for Slug Flow
+    // Liquid data
+    let wl: f64 = 12000.0; // [kg/hr]
+    let lo_l: f64 = 801.0; // [kg/m^3]
+    let mu_l: f64 = 0.6; // [cP]
+    let surface_tension: f64 = 10.0; // [dyne/cm]
+                                     // Vapor data
+    let wg: f64 = 450.0; // [kg/hr]
+    let lo_g: f64 = 8.0; // [kg/m^3]
+    let mu_g: f64 = 0.01; // [cP]
+                          // Misc. data
+    let id: f64 = 1.049; // [in]
+    let slope: f64 = 0.0; // [degree]
+    let rough: f64 = 0.046; // [mm]
+    let sf: f64 = 1.0; // [-]
+
+    let mut p3 = VerticalDown::new(
+        wl,
+        wg,
+        lo_l,
+        lo_g,
+        mu_l,
+        mu_g,
+        surface_tension,
+        rough,
+        sf,
+        id,
+        slope,
+    );
+    p3.unit_transfer();
+    p3.flow_regime();
+    println!("flow regime << {} >>", p3.flow_regime);
+    p3.model_cal();
+    println!("Tow-Phase Density (kg/m^3) = {:.4}", p3.Loip);
+    println!("Liquid Slug Density (kg/m^3) = {:.4}", p3.LoLS);
+    println!("Liquid Volume Fraction (-) = {:.4}", p3.HL);
+    println!("1.0 Velocity Head (kgf/cm^2) = {:.4}", p3.Head);
+    println!("Frictional Pressure Loss (kgf/cm^2/100m) = {:.4}", p3.Pfric);
+    println!("Elevation Head Loss (kgf/cm^2/100m) = {:.4}", p3.Pgrav);
+    println!("Erosion Factor (-) = {:.3}", p3.Ef);
+    println!("if Φ ≤ 1 : No Erosion, Φ > 1, Erosion occurred");
     // EndRegion
 }
 

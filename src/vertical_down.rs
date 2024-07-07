@@ -42,8 +42,13 @@ pub struct VerticalDown {
     pub Ef: f64,    // Erosion Factor [-]
 
     // for Bubble Model
-    // LoTP, UTP, Head, Pfric, Pgrav, Ef
+    // LoTP, UTP, Head, Pfric, Pgrav, Ef same as Annular Model
     pub HL: f64, // Liquid Volume Fraction [-]
+
+    // for Slug Model
+    pub Loip: f64, // Two-phase density [kg/m^3]
+    pub LoLS: f64, // Liquid Slug Density [kg/m^3]
+    // HL, Head, Pfric, Pgrav, EF same as Annular Model
 
     // state variable
     is_unit_change: bool, // is call the unit_transfer and transfer to unit
@@ -86,6 +91,8 @@ impl crate::vertical_down::VerticalDown {
             Pgrav: 0.0,
             Ef: 0.0,
             HL: 0.0,
+            Loip: 0.0,
+            LoLS: 0.0,
         }
     }
 
@@ -194,7 +201,41 @@ impl crate::vertical_down::VerticalDown {
         self.Ef = (LoNS * 0.062428) * (self.UTP * 3.28084).powi(2) / 10000.0; // must transfer to imperial unit
     }
 
-    fn SlugModel(&mut self) {}
+    fn SlugModel(&mut self) {
+        let area = std::f64::consts::PI / 4.0 * self.ID * self.ID; // pipe inside cross section area [m^2]
+        let UGS = self.WG / (self.LoG * area) / 3600.0; // Superficial Vapor velocity [m/s]
+        let ULS = self.WL / (self.LoL * area) / 3600.0; // Superficial Liquid velocity [m/s]
+        let UTP = UGS + ULS; // Two Phase Velocity [m/s]
+        let Um = UTP;
+        let C0 = 1.0; // The Distribution parameter [-]
+        let K = -0.6; // Drift-flux coefficient [-]
+        let Ub = C0 * Um + K * ((G * self.ID * (self.LoL - self.LoG) / self.LoL).sqrt()); // bubble velocity down flow [m/s]
+        self.HL = 1.0 - UGS / Ub; // Liquid Hold-up [-]
+        if self.HL > 0.75 {
+            self.HL = 0.75;
+        }
+        let alfa = 0.25; // Gas average void fraction [-]
+        self.LoLS = self.LoL * (1.0 - alfa) + self.LoG * alfa;
+        let muLS = self.muL * (1.0 - alfa) + self.muG * alfa;
+        let ReLS = self.LoLS * Um * self.ID / muLS;
+        let f0 = self.fanning(ReLS) * 4.0; // single phase Moddy Darcy Friction Factor [-]
+        let Landa: f64 = 0.75;
+        let LnLanda = -1.0 * Landa.ln();
+        let fTP = (1.0
+            + LnLanda
+                / (1.281 - 0.478 * LnLanda + 0.444 * LnLanda.powf(2.0)
+                    - 0.094 * LnLanda.powf(3.0)
+                    + 0.00843 * LnLanda.powf(4.0)))
+            * f0; // Two Phase Moddy (Darcy) friction factor [-]
+        self.Pfric = fTP * self.LoLS * Um.powf(2.0) / (2.0 * G * self.ID) * self.HL / 10000.0
+            * 100.0
+            * self.SF;
+        self.Pgrav = (self.HL * self.LoL + (1.0 - self.HL) * self.LoG) / 10000.0 * 100.0;
+        let LoNS = (self.WL + self.WG) / (self.WL / self.LoL + self.WG / self.LoG); // No-Slip Velocity [m/s]
+        self.Loip = self.LoL * self.HL + self.LoG * (1.0 - self.HL);
+        self.Head = LoNS * UTP.powf(2.0) / (2.0 * G) / 10000.0; // 1.0 Velocity Head
+        self.Ef = (LoNS * 0.062428) * (UTP * 3.28084).powf(2.0) / 10000.0; // Erosion Factor must transfer to imperial unit
+    }
 
     fn BubbleModel(&mut self) {
         let area = std::f64::consts::PI / 4.0 * self.ID * self.ID; // pipe inside cross section area [m^2]
