@@ -111,6 +111,12 @@ impl crate::vertical_down::VerticalDown {
 
         ULScal
     }
+
+    fn AnnularModel(&mut self) {}
+
+    fn SlugModel(&mut self) {}
+
+    fn BubbleModel(&mut self) {}
 }
 
 impl TwoPhaseLine for VerticalDown {
@@ -248,5 +254,15 @@ impl TwoPhaseLine for VerticalDown {
         };
     }
 
-    fn model_cal(&mut self) {}
+    fn model_cal(&mut self) {
+        match self.regime_enum {
+            Regime::VerticalDownAnnularFlow(..) => self.AnnularModel(),
+            Regime::VerticalDownSlugFlow(..) => self.SlugModel(),
+            Regime::VerticalUpBubbleFlow(..) => self.BubbleModel(),
+            Regime::VerticalDownDispersedBubbleFlow(..) => self.BubbleModel(),
+            _ => {
+                println!("No match model for this flow pattern !!")
+            }
+        }
+    }
 }
