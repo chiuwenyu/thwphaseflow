@@ -41,6 +41,10 @@ pub struct VerticalDown {
     pub Pgrav: f64, // Elevation Head Loss [kgf/cm^2/100m]
     pub Ef: f64,    // Erosion Factor [-]
 
+    // for Bubble Model
+    // LoTP, UTP, Head, Pfric, Pgrav, Ef
+    pub HL: f64, // Liquid Volume Fraction [-]
+
     // state variable
     is_unit_change: bool, // is call the unit_transfer and transfer to unit
 }
@@ -81,6 +85,7 @@ impl crate::vertical_down::VerticalDown {
             Pfric: 0.0,
             Pgrav: 0.0,
             Ef: 0.0,
+            HL: 0.0,
         }
     }
 
@@ -191,7 +196,36 @@ impl crate::vertical_down::VerticalDown {
 
     fn SlugModel(&mut self) {}
 
-    fn BubbleModel(&mut self) {}
+    fn BubbleModel(&mut self) {
+        let area = std::f64::consts::PI / 4.0 * self.ID * self.ID; // pipe inside cross section area [m^2]
+        let UGS = self.WG / (self.LoG * area) / 3600.0; // Superficial Vapor velocity [m/s]
+        let ULS = self.WL / (self.LoL * area) / 3600.0; // Superficial Liquid velocity [m/s]
+        self.UTP = UGS + ULS; // Two Phase Velocity [m/s]
+        let Um = self.UTP;
+        let C0 = 1.0; // The Distribution parameter [-]
+        let K = 0.0; // Drift-flux coefficient [-]
+        let Ub = C0 * Um + K * (self.ST * G * (self.LoL - self.LoG) / self.LoL.powi(2)).powf(0.25); // bubble velocity down flow [m/s]
+        self.HL = 1.0 - UGS / Ub; // Liquid Hold-up [-]
+        let Landa = (self.WL / self.LoL) / (self.WL / self.LoL + self.WG / self.LoG);
+        self.LoTP =
+            self.LoL * Landa.powi(2) / self.HL + self.LoG * (1.0 - Landa).powi(2) / (1.0 - self.HL); // Two phase density [kg/m^3]
+        let muTP = self.muL * Landa + self.muG * (1.0 - Landa); // Two Phase Viscosity [Kg/(m-s)]
+        let ReTP = self.LoTP * Um * self.ID / muTP; // Two phase Reynold Number [-]
+
+        // Assuming Fanning is a function that you have defined elsewhere
+        let f0 = self.fanning(ReTP) * 4.0; // Darcy friction factor [-]
+        let LnLanda = -1.0 * Landa.ln();
+        let fTP = (1.0
+            + LnLanda
+                / (1.281 - 0.478 * LnLanda + 0.444 * LnLanda.powi(2) - 0.094 * LnLanda.powi(3)
+                    + 0.00843 * LnLanda.powi(4)))
+            * f0; // Two Phase Moddy (Darcy) friction factor [-]
+        self.Pfric = fTP * self.LoTP * Um.powi(2) / (2.0 * G * self.ID) / 10000.0 * 100.0 * self.SF;
+        self.Pgrav = (self.HL * self.LoL + (1.0 - self.HL) * self.LoG) / 10000.0 * 100.0;
+        let LoNS = (self.WL + self.WG) / (self.WL / self.LoL + self.WG / self.LoG); // No-Slip Velocity [m/s]
+        self.Head = LoNS * self.UTP.powi(2) / (2.0 * G) / 10000.0; // 1.0 Velocity Head
+        self.Ef = (LoNS * 0.062428) * (self.UTP * 3.28084).powi(2) / 10000.0; // Erosion Factor must transfer to imperial unit
+    }
 }
 
 impl TwoPhaseLine for VerticalDown {
