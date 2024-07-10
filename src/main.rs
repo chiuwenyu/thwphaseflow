@@ -37,10 +37,9 @@ pub fn vertical_up_validate() {
         id,
         slope,
     );
-    p1.unit_transfer();
-    p1.flow_regime();
-    println!("flow regime << {} >>", p1.flow_regime);
+
     p1.model_cal();
+    println!("flow regime << {} >>", p1.flow_regime);
     println!("Tow-Phase Density (kg/m^3) = {:.4}", p1.Loip);
     println!("Liquid Volume Fraction (-) = {:.3}", p1.RL);
     println!("Two-Phase Velocity (m/sec) = {:.4}", p1.UTP);
@@ -80,10 +79,9 @@ pub fn vertical_up_validate() {
         id,
         slope,
     );
-    p2.unit_transfer();
-    p2.flow_regime();
-    println!("flow regime << {} >>", p2.flow_regime);
+
     p2.model_cal();
+    println!("flow regime << {} >>", p2.flow_regime);
     println!("Tow-Phase Density (kg/m^3) = {:.4}", p2.LoNS);
     println!("Liquid Volume Fraction (-) = {:.4}", p2.Landa);
     println!("Two-Phase Velocity (m/sec) = {:.4}", p2.UTP);
@@ -123,10 +121,9 @@ pub fn vertical_up_validate() {
         id,
         slope,
     );
-    p3.unit_transfer();
-    p3.flow_regime();
-    println!("flow regime << {} >>", p3.flow_regime);
+
     p3.model_cal();
+    println!("flow regime << {} >>", p3.flow_regime);
     println!("Liquid Slug Density (kg/m^3) = {:.4}", p3.LoLS);
     println!("Tow-Phase Slug Unit Density (kg/m^3) = {:.4}", p3.LoSU);
     println!("Liquid Slug Velocity (m/sec) = {:.4}", p3.ULLS);
@@ -171,10 +168,9 @@ pub fn horizontal_validate() {
     //     id,
     //     slope,
     // );
-    // p1.unit_transfer();
-    // p1.flow_regime();
-    // println!("p1 flow regime << {} >>", p1.flow_regime);
+
     // p1.model_cal();
+    // println!("p1 flow regime << {} >>", p1.flow_regime);
     // println!("Tow-Phase Density (kg/m^3) = {:.4}", p1.Loip);
     // println!("Liquid Volume Fraction (-) = {:.3}", p1.RL);
     // println!("Two-Phase Velocity (m/sec) = {:.4}", p1.UTP);
@@ -214,10 +210,9 @@ pub fn horizontal_validate() {
     //     id,
     //     slope,
     // );
-    // p2.unit_transfer();
-    // p2.flow_regime();
-    // println!("p2 flow regime << {} >>", p2.flow_regime);
+
     // p2.model_cal();
+    // println!("p2 flow regime << {} >>", p2.flow_regime);
     // println!("Tow-Phase Density (kg/m^3) = {:.4}", p2.LoTP);
     // println!("Liquid Depth-BOP (m) = {:.4}", p2.depth);
     // println!("Liquid Velocity (m/sec) = {:.4}", p2.velL);
@@ -258,10 +253,9 @@ pub fn horizontal_validate() {
     //     id,
     //     slope,
     // );
-    // p3.unit_transfer();
-    // p3.flow_regime();
-    // println!("p3 flow regime << {} >>", p3.flow_regime);
+
     // p3.model_cal();
+    // println!("p3 flow regime << {} >>", p3.flow_regime);
     // println!("Tow-Phase Slug Unit Density (kg/m^3) = {:.4}", p3.LoSU);
     // println!("Liquid Slug Unit Density [m/s] = {:.4}", p3.LoLS);
     // println!("Liquid Volume Fraction (-) = {:.4}", p3.RL);
@@ -305,10 +299,9 @@ pub fn vertical_down_validate() {
     //     id,
     //     slope,
     // );
-    // p1.unit_transfer();
-    // p1.flow_regime();
-    // println!("flow regime << {} >>", p1.flow_regime);
+
     // p1.model_cal();
+    // println!("flow regime << {} >>", p1.flow_regime);
     // println!("Tow-Phase Density (kg/m^3) = {:.4}", p1.LoTP);
     // println!("Two-Phase Velocity (m/sec) = {:.4}", p1.UTP);
     // println!("Liquid Volume Fraction (-) = {:.4}", p1.alfaL);
@@ -348,10 +341,9 @@ pub fn vertical_down_validate() {
     //     id,
     //     slope,
     // );
-    // p2.unit_transfer();
-    // p2.flow_regime();
-    // println!("flow regime << {} >>", p2.flow_regime);
+
     // p2.model_cal();
+    // println!("flow regime << {} >>", p2.flow_regime);
     // println!("Tow-Phase Density (kg/m^3) = {:.4}", p2.LoTP);
     // println!("Liquid Volume Fraction (-) = {:.4}", p2.HL);
     // println!("Two-Phase Velocity (m/sec) = {:.4}", p2.UTP);
@@ -391,10 +383,9 @@ pub fn vertical_down_validate() {
         id,
         slope,
     );
-    p3.unit_transfer();
-    p3.flow_regime();
-    println!("flow regime << {} >>", p3.flow_regime);
+
     p3.model_cal();
+    println!("flow regime << {} >>", p3.flow_regime);
     println!("Tow-Phase Density (kg/m^3) = {:.4}", p3.Loip);
     println!("Liquid Slug Density (kg/m^3) = {:.4}", p3.LoLS);
     println!("Liquid Volume Fraction (-) = {:.4}", p3.HL);

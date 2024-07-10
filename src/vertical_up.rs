@@ -436,6 +436,10 @@ impl TwoPhaseLine for VerticalUp {
     }
 
     fn model_cal(&mut self) {
+        if !self.is_unit_change {
+            self.unit_transfer();
+        }
+        self.flow_regime();
         match self.regime_enum {
             Regime::VerticalUpAnnularFlow(..) => self.SimilarityAnalysis(),
             Regime::VerticalUpSlugAndChurnFlow(..) => self.SlugModel(),
